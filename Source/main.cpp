@@ -7,6 +7,7 @@ using namespace std;
 
 int gPlayersTotal = 8;
 int gPlayersPerTeam = 2;
+bool gUniqueTeams = true;
 bool gPrintColors = true;
 
 const vector<char> COLORS = {'R', 'B', 'G', 'Y', 'W', 'T', 'P', 'A'};
@@ -105,13 +106,16 @@ void PopulateTeams(int offset, Team& team, vector<Team>& teams)
     }
 }
 
-bool IsTeamUnique(const vector<Game>& games, const Team& team)
+bool IsGameUnique(const Game& gameOther, const vector<Game>& games)
 {
     for(const Game& game : games)
     {
-        if(game.HasTeam(team))
+        for(const Team& team : game.teams)
         {
-            return(false);
+            if(gameOther.HasTeam(team))
+            {
+                return(false);
+            }
         }
     }
     return(true);
@@ -121,20 +125,20 @@ void PopulateGames(int offset, Game& game, vector<Game>& games, vector<Team>& te
 {
     if(game.totalPlayers() == gPlayersTotal)
     {
-        games.push_back(game);
+        if(!gUniqueTeams || IsGameUnique(game, games))
+        {
+            games.push_back(game);
+        }
         return;
     }
-    else
+    for(size_t i = offset; i < teams.size(); ++i)
     {
-        for(size_t i = offset; i < teams.size(); ++i)
+        const Team& team = teams[i];
+        if(!game.HasTeamPlayer(team))
         {
-            const Team& team = teams[i];
-            if(!game.HasTeamPlayer(team) && IsTeamUnique(games, team))
-            {
-                game.teams.push_back(team);
-                PopulateGames(i + 1, game, games, teams);
-                game.teams.pop_back();
-            }
+            game.teams.push_back(team);
+            PopulateGames(i + 1, game, games, teams);
+            game.teams.pop_back();
         }
     }
 }
@@ -143,7 +147,8 @@ int main(int argc, const char* argv[])
 {
     if(argc > 1) {gPlayersTotal = atoi(argv[1]);}
     if(argc > 2) {gPlayersPerTeam = atoi(argv[2]);}
-    if(argc > 3) {gPrintColors = (string(argv[3]) == "true");}
+    if(argc > 3) {gUniqueTeams = (string(argv[3]) == "true");}
+    if(argc > 4) {gPrintColors = (string(argv[4]) == "true");}
     
     cout << "UNIQUE TEAM CYCLE" << endl << endl;
 
